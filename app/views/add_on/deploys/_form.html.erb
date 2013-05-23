@@ -1,40 +1,46 @@
 <h3>Environment Details</h3>
-The deployment service now only supports <strong>Ubuntu 12.04 LTS</strong>.
-<br>
+
+<div class="note warning">
+  The deployment service now only supports <strong>Ubuntu 12.04 LTS</strong>.
+</div>
+
 <%= hidden_field_tag 'add_on_deploy[operating_system]', 'ubuntu-12.04' %>
 
-<li class="half">
-<%= form.label 'Rails Environment' %><br>
-  <%= form.select :rails_environment, [['Production', 'production'], ['Staging', 'staging'], ['Quality', 'quality']] %>
-</li>
 
-<li class="half">
-  <%= form.label 'Ruby Version' %><br>
-  <%= form.select :ruby_version, ['ree-1.8.7-2012.02', '1.8.7-p370', '1.9.2-p320', '1.9.3-p125', '1.9.3-p327', '1.9.3-p392'],
-                  :selected => ( @deploy.ruby_version.nil? ? '1.9.3-p327' : @deploy.ruby_version ) %>
-</li>
+<div id="deploy-env">
+  <div class='field' id='env-rails-env'>
+    <%= form.label 'Rails Environment' %>
+    <%= form.select :rails_environment, [['Production', 'production'], ['Staging', 'staging'], ['Quality', 'quality']] %>
+  </div>
 
-<li class="half">
-  <%= form.label 'Spree Version' %><br>
-  <%= form.select :spree_version_id, @deployable_versions.collect {|sv| [sv.name,sv.id] } %>
-</li>
+  <div class="field" id='env-ruby-ver'>
+    <%= form.label 'Ruby Version' %>
+    <%= form.select :ruby_version, ['ree-1.8.7-2012.02', '1.8.7-p370', '1.9.2-p320', '1.9.3-p125', '1.9.3-p327', '1.9.3-p392'],
+                    :selected => ( @deploy.ruby_version.nil? ? '1.9.3-p327' : @deploy.ruby_version ) %>
+  </div>
 
-<script type="text/javascript">
-  var spree_versions = new Object();
-  <% SpreeVersion.where('demo_git_url is not null').each  do |version| %>
-    spree_versions[<%= version.id %>] = '<%= version.demo_git_url %>';
-  <% end %>
-</script>
+  <div class='field'  id='env-spree-ver'>
+    <%= form.label 'Spree Version' %>
+    <%= form.select :spree_version_id, @deployable_versions.collect {|sv| [sv.name,sv.id] } %>
+  </div>
 
-<li class="full" style="padding-top:10px;clear:both;">
-  <%= form.label 'What would you like to deploy on this environment?' %><br>
-  <%= form.select :deploy_demo, [ ['My own custom Spree application', false], ['A sample Spree store', true]] %><br>
-  <em id="deploy_note"></em>
-</li>
+  <script type="text/javascript">
+    var spree_versions = new Object();
+    <% SpreeVersion.where('demo_git_url is not null').each  do |version| %>
+      spree_versions[<%= version.id %>] = '<%= version.demo_git_url %>';
+    <% end %>
+  </script>
+</div>
 
-<li class="full" id="deployment_guide">
-  <%= form.label 'Git URL for your application' %><br>
-  <%= form.text_field :git_url, :placeholder => 'git://github.com/your_name/your_spree_app.git' %><br>
+<div class='field'>
+  <%= form.label 'What would you like to deploy on this environment?' %>
+  <%= form.select :deploy_demo, [ ['My own custom Spree application', false], ['A sample Spree store', true]] %>
+  <em id='deploy_note'></em>
+</div>
+
+<div class="field fullwidth" id="deployment-guide">
+  <%= form.label 'Git URL for your application' %>
+  <%= form.text_field :git_url, placeholder: 'git://github.com/your_name/your_spree_app.git' %>
   <em id="deploy_note"></em>
   <% if @deploy.config_state != 'new' %>
     <em>
@@ -42,30 +48,32 @@ The deployment service now only supports <strong>Ubuntu 12.04 LTS</strong>.
        to deploy to your new environment.
     </em>
   <% end %>
-</li>
+</div>
 
-
-
-<li>
+<div class="field">
   <% if @deploy.new_record? %>
-    <label>Server Configuration</label><br>
-    <em>After clicking "Add", be sure to configure all server(s) with the required information to continue</em>
+    <label>Server Configuration</label>
+    <div class='note hint'>After clicking "Add", be sure to configure all server(s) with the required information to continue</div>
   <% else %>
-    <%= form.label 'Configuration Status' %><br>
+    <%= form.label 'Configuration Status' %>
+
     <% if @deploy.config_state == 'new' %>
       <%= form.radio_button :config_state, 'new' %><label>New</label>
       <%= form.radio_button :config_state, 'complete' %><label>Complete</label>
-      <br>
-      <em>Mark the configuration as 'Complete' once you have created all the required servers below.</em><br>
-      <em>This will stage all the server configuration details to our deployment server</em>
+
+      <div class='note hint'>
+        Mark the configuration as 'Complete' once you have created all the required servers below.
+        <br>
+        This will stage all the server configuration details to our deployment server
+      </div>
     <% else %>
       <% if @deploy.errors.blank? && @server.nil? %>
         <% if @deploy.valid? %>
           <em>Configuration is valid, check below for each individual server's status.</em>
         <% else %>
-          <em>The current configuration is no longer valid and cannot be used, please review the following errors:</em><br>
+          <em>The current configuration is no longer valid and cannot be used, please review the following errors:</em>
           <% @deploy.errors.full_messages.each do |message| %>
-            <em style="color:red;">- <%= message %></em><br>
+            <em style="color:red;">- <%= message %></em>
           <% end %>
         <% end %>
       <% else %>
@@ -73,6 +81,4 @@ The deployment service now only supports <strong>Ubuntu 12.04 LTS</strong>.
       <% end %>
     <% end %>
   <% end %>
-</li>
-
-
+</div>
