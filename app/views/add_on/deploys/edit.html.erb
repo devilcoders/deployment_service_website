@@ -1,4 +1,5 @@
 <%= render 'shared/account_nav', :current => 'stores' %>
+<% @title = "Deployments for #{@store.name}" %>
 
 <div class="content-text">
 
@@ -15,7 +16,11 @@
   <%= form_for @deploy, :html => {:multipart => true} do |f| %>
     <%= render :partial => 'add_on/deploys/form', :object => f %>
     <div class="form-actions">
-      <input class="button green" name="commit" type="submit" value="update">
+      <button class="button big green" type="submit">
+        <i class="icon-cw"></i>
+        Update
+      </button>
+
     </div>
   <% end %>
 
@@ -27,155 +32,145 @@
   <% end %>
 
 
-  <% @deploy.servers.each do |server| %>
-    <% next if server.new_record? %>
+  <ul class="server-list">
+    <% @deploy.servers.each do |server| %>
+      <% next if server.new_record? %>
 
-    <%= form_for [@deploy, server] do |form| %>
-      <h3>FQDN: <%= server.fqdn %></h3>
+      <li class="server">
+        <%= form_for [@deploy, server] do |form| %>
+          <div class="field">
+            <label for="">FQDN:</label>
+            <%= link_to server.fqdn, "http://#{server.fqdn}", target: '_blank' %>
+          </div>
 
-      <table style="width:100%;">
-        <tbody>
-          <tr>
-            <td colspan="2" style="width:55%;">
-              <label>IP Address:</label><br>
-              <%= form.text_field :ip_address %>
-            </td>
-            <td>
-              <% if server.has_class?('appserver') %>
-                <label>Unicorn Workers:</label><br>
-                <%= form.select :number_unicorn_workers, (2..20).to_a, :style => 'width:50%' %>
-              <% else %>
-                <%= form.hidden_field :number_unicorn_workers, :value => 0  %>
-              <% end %>
-            </td>
-            <td>
-              <%= form.submit "Update" %> or
-              <%= link_to 'Delete!', add_on_deploy_server_path(@deploy, server), :confirm => "Are you sure you want to delete this server?", :method => :delete %>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="4">
-              <label>Roles:</label>
-              <%= server.display_classes %>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          <div class="field">
+            <label>IP Address:</label>
+            <%= form.text_field :ip_address %>
+          </div>
+
+          <div class="field">
+            <% if server.has_class?('appserver') %>
+              <label>Unicorn Workers:</label>
+              <%= form.number_field :number_unicorn_workers, min: 2, max: 20 %>
+            <% else %>
+              <%= form.hidden_field :number_unicorn_workers, :value => 0  %>
+            <% end %>
+          </div>
+
+          <div class="form-actions">
+            <button class="button green" type="submit">
+              <i class="icon-cw"></i>
+              Update
+            </button>
+            <span class="or">or</span>
+            <%= link_to content_tag(:i, '', class: 'icon-trash') + ' Delete', add_on_deploy_server_path(@deploy, server), :confirm => "Are you sure you want to delete this server?", :method => :delete, class: 'button' %>
+          </div>
+
+          <label>Roles:</label>
+          <%= server.display_classes %>
+
+        <% end %>
+
+        <% if server.digest.present? %>
+          <% if server.last_puppet_run.present? %>
+            <div class="server-status">
+              <strong>Status:</strong>Reported as '<%= server.last_puppet_result %>' <%= distance_of_time_in_words_to_now server.last_puppet_run %> ago.
+            </div>
+
+            <h2>Update Configuration</h2>
+
+            <div class='code server-update-code'>
+              <pre class="brush: shell">
+                FACTER_db_pass=YOUR_DB_PASSWORD puppet agent --test --certname <%= server.fqdn %>
+              </pre>
+              </code>
+            </div>
+
+            <em>Copy & execute the command above on the server when logged in as root.</em>
+          <% else %>
+            <div class="server-status">
+              <strong>Status:</strong>Ready to deploy
+            </div>
+          <% end %>
+
+          <h5>Initialize Configuration</h5>
+
+          <div class='code server-init-code'>
+            <pre class="brush: shell">
+              bash < <(curl -s http://puppet.spreecommerce.com:5000/install?fqdn=<%= server.fqdn %>\&digest=<%= server.digest %> )
+            </pre>
+          </div>
+
+          <em>Copy & execute the command above on the server when logged in as root.</em>
+
+        <% else %>
+          <% if @deploy.config_state == 'new' %>
+            Mark the <b>Configuration Status</b> above as 'Complete' to begin server configuration.
+          <% else %>
+            Waiting for update from configuration server, 'Refresh' the page for updates.
+          <% end %>
+        <% end %>
+      </li>
+
+
     <% end %>
+  </ul>
 
-    <% if server.digest.present? %>
-      <% if server.last_puppet_run.present? %>
-        <div class="server-status">
-          <strong>Status:</strong>Reported as '<%= server.last_puppet_result %>' <%= distance_of_time_in_words_to_now server.last_puppet_run %> ago.
-        </div>
 
-        <h5>Update Configuration</h5>
+  <div id="add-server">
+    <h1>Add Server</h1>
 
-        <div class='code server-update-code'>
-          <code class='bash'>
-            FACTER_db_pass=YOUR_DB_PASSWORD puppet agent --test --certname <%= server.fqdn %>
-          </code>
-        </div>
-
-        <em>Copy & execute the command above on the server when logged in as root.</em>
-      <% else %>
-        <div class="server-status">
-          <strong>Status:</strong>Ready to deploy
-        </div>
-      <% end %>
-
-      <h5>Initialize Configuration</h5>
-
-      <div class='code server-init-code'>
-        <code>
-          bash < <(curl -s http://puppet.spreecommerce.com:5000/install?fqdn=<%= server.fqdn %>\&digest=<%= server.digest %> )
-        </code>
+    <%= render 'shared/error_messages', :target => @server %>
+    <%= form_for [@deploy, Server.new] do %>
+      <div class="field">
+        <label for="">Fully Qualified Domain Name (FQDN)</label>
+        <%= text_field_tag "server[fqdn]", @server.try(:fqdn), :style => "width:83%;" %></td>
       </div>
 
-      <em>Copy & execute the command above on the server when logged in as root.</em>
+      <div class="field">
+        <label for="">IP Address</label>
+        <%= text_field_tag "server[ip_address]", @server.try(:ip_address) %>
+      </div>
 
-    <% else %>
-      <% if @deploy.config_state == 'new' %>
-        Mark the <b>Configuration Status</b> above as 'Complete' to begin server configuration.
-      <% else %>
-        Waiting for update from configuration server, 'Refresh' the page for updates.
-      <% end %>
+      <div class="field">
+        <label for="">Unicorn Workers</label>
+        <%= select_tag "server[number_unicorn_workers]", options_for_select((2..20).to_a, 3), :style => 'width:50%', :class => "new_server_unicorns"  %>
+      </div>
+
+      <div class="field">
+        <label>Roles</label>
+        <%= check_box_tag "server[classes][]", "appserver", @server.try(:classes).to_s.include?("appserver"), :class => 'server_classes' %>App Server (nginx, unicorn, ruby, git)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<%= check_box_tag "server[classes][]", "loadbalancer", @server.try(:classes).to_s.include?("loadbalancer"), :class => 'server_classes' %>Load Balancer (server must have app server role)<br>
+        <%= check_box_tag "server[classes][]", "dbserver", @server.try(:classes).to_s.include?("dbserver"), :class => 'server_classes' %>DB Server (mysql, ruby, git)<br>
+        <%= check_box_tag "server[classes][]", "utilserver", @server.try(:classes).to_s.include?("utilserver"), :class => 'server_classes' %>Utility Server (mysql, ruby, git)
+      </div>
+
+      <div class="form-actions">
+        <%= submit_tag 'Add', :class => "button green", :style => 'float:right;' %>
+      </div>
+
     <% end %>
-  <% end %>
-
-
-  <h1>Add Server</h1>
-
-  <%= render 'shared/error_messages', :target => @server %>
-  <%= form_for [@deploy, Server.new] do %>
-    <table style="width:100%;">
-      <tbody>
-        <tr>
-          <td style="width:100%;" colspan="2">Fully Qualified Domain Name (FQDN)</td>
-        </tr>
-        <tr>
-          <td colspan="2"><%= text_field_tag "server[fqdn]", @server.try(:fqdn), :style => "width:83%;" %></td>
-        </tr>
-        <tr>
-          <td style="width:50%;">IP Address</td>
-          <td style="width:50%;">Unicorn Workers</td>
-        </tr>
-        <tr>
-          <td><%= text_field_tag "server[ip_address]", @server.try(:ip_address) %></td>
-          <td><%= select_tag "server[number_unicorn_workers]", options_for_select((2..20).to_a, 3), :style => 'width:50%', :class => "new_server_unicorns"  %></td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <label>Roles</label><br>
-            <%= submit_tag 'Add', :class => "button green", :style => 'float:right;' %>
-
-            <%= check_box_tag "server[classes][]", "appserver", @server.try(:classes).to_s.include?("appserver"), :class => 'server_classes' %>App Server (nginx, unicorn, ruby, git)<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<%= check_box_tag "server[classes][]", "loadbalancer", @server.try(:classes).to_s.include?("loadbalancer"), :class => 'server_classes' %>Load Balancer (server must have app server role)<br>
-            <%= check_box_tag "server[classes][]", "dbserver", @server.try(:classes).to_s.include?("dbserver"), :class => 'server_classes' %>DB Server (mysql, ruby, git)<br>
-            <%= check_box_tag "server[classes][]", "utilserver", @server.try(:classes).to_s.include?("utilserver"), :class => 'server_classes' %>Utility Server (mysql, ruby, git)
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  <% end %>
+  </div>
 </div>
 
-<div id="sidebar">
+<div id="sidebar" class='help-sidebar'>
     <h1>Help</h1>
-    <table class="chart">
-    <tbody>
-      <tr>
-        <td class="name">
-          <p>
-            Learn more about:<br>
-            - <%= link_to "Spree Deployment Service", "http://guides.spreecommerce.com/deployment_service.html" %><br>
-            - <%= link_to "Deploying your application", "http://guides.spreecommerce.com/deploying_your_application.html" %><br>
-            - <%= link_to "Config. & Customization", "http://guides.spreecommerce.com/server_configuration_and_customization.html" %><br>
-            - <%= link_to "Appliation Processes", "http://guides.spreecommerce.com/deployment_application_processes.html" %><br>
-            - <%= link_to "SSL Certificates", "http://guides.spreecommerce.com/requesting_and_configuring_ssl.html" %><br>
-           </p>
-        </td>
-      </tr>
-      <tr>
-        <td class="name">
-          <p>Each deployment requires at least one <strong>Application</strong> and only one <strong>Database</strong> Server.</p>
-        </td>
-      </tr>
-      <tr>
-        <td class="name">
-          <p>For small / test environments a single server can have both <strong>Application</strong> and  <strong>Database</strong> roles.</p>
-        </td>
-      </tr>
-      <tr>
-        <td class="name">
-          <p><strong>FQDNs</strong> should use the following notation:<br>app1.example.com<br>db1.example.com<br>www.example.com </p>
-        </td>
-      </tr>
-      <tr>
-        <td class="name">
-          <p><strong>IP Addresses</strong> can use private / internal addresses but each server must be contactable by each other on the specified address.</p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+
+    <p>
+      Learn more about:<br>
+      - <%= link_to "Spree Deployment Service", "http://guides.spreecommerce.com/deployment_service.html" %><br>
+      - <%= link_to "Deploying your application", "http://guides.spreecommerce.com/deploying_your_application.html" %><br>
+      - <%= link_to "Config. & Customization", "http://guides.spreecommerce.com/server_configuration_and_customization.html" %><br>
+      - <%= link_to "Appliation Processes", "http://guides.spreecommerce.com/deployment_application_processes.html" %><br>
+      - <%= link_to "SSL Certificates", "http://guides.spreecommerce.com/requesting_and_configuring_ssl.html" %><br>
+    </p>
+
+    <p>Each deployment requires at least one <strong>Application</strong> and only one <strong>Database</strong> Server.</p>
+
+    <p>For small / test environments a single server can have both <strong>Application</strong> and  <strong>Database</strong> roles.</p>
+
+    <p><strong>FQDNs</strong> should use the following notation:<br>app1.example.com<br>db1.example.com<br>www.example.com </p>
+
+    <p><strong>IP Addresses</strong> can use private / internal addresses but each server must be contactable by each other on the specified address.</p>
+
 </div>

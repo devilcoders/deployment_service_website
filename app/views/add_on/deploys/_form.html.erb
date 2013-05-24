@@ -1,11 +1,10 @@
-<h3>Environment Details</h3>
+<h2>Environment Details</h2>
 
 <div class="note warning">
   The deployment service now only supports <strong>Ubuntu 12.04 LTS</strong>.
 </div>
 
 <%= hidden_field_tag 'add_on_deploy[operating_system]', 'ubuntu-12.04' %>
-
 
 <div id="deploy-env">
   <div class='field' id='env-rails-env'>
@@ -43,10 +42,10 @@
   <%= form.text_field :git_url, placeholder: 'git://github.com/your_name/your_spree_app.git' %>
   <em id="deploy_note"></em>
   <% if @deploy.config_state != 'new' %>
-    <em>
-      Once your servers are built, you can use this <%= link_to "Capistrano Recipe", capistrano_add_on_deploy_path(@deploy), :target => '_blank', :style => 'font-size:13px;' %>
+    <div class="field-note">
+      Once your servers are built, you can use this <%= link_to "Capistrano Recipe", capistrano_add_on_deploy_path(@deploy), target: '_blank' %>
        to deploy to your new environment.
-    </em>
+    </div>
   <% end %>
 </div>
 
@@ -69,15 +68,15 @@
     <% else %>
       <% if @deploy.errors.blank? && @server.nil? %>
         <% if @deploy.valid? %>
-          <em>Configuration is valid, check below for each individual server's status.</em>
+          <div class="info">Configuration is valid, check below for each individual server's status.</div>
         <% else %>
-          <em>The current configuration is no longer valid and cannot be used, please review the following errors:</em>
+          <div class="warning">The current configuration is no longer valid and cannot be used, please review the following errors:</div>
           <% @deploy.errors.full_messages.each do |message| %>
-            <em style="color:red;">- <%= message %></em>
+            <div style="color:red;">- <%= message %></div>
           <% end %>
         <% end %>
       <% else %>
-        <em>Unable to determine configuration status.</em>
+        <div class="warning">Unable to determine configuration status.</div>
       <% end %>
     <% end %>
   <% end %>
