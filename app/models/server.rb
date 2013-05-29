@@ -19,10 +19,10 @@ class Server < ActiveRecord::Base
   def display_classes
     self.classes.split(',').map do |klass|
       case klass
-        when 'appserver'; then 'Application Server'
-        when 'loadbalancer'; then 'Load Balancer'
-        when 'dbserver'; then 'Database Server'
-        when 'utilserver'; then 'Utility Server'
+        when 'appserver';    then '<span class="role">Application Server</span>'
+        when 'loadbalancer'; then '<span class="role">Load Balancer</span>'
+        when 'dbserver';     then '<span class="role">Database Server</span>'
+        when 'utilserver';   then '<span class="role">Utility Server</span>'
       end
     end.join ', '
   end
@@ -33,13 +33,13 @@ class Server < ActiveRecord::Base
 
   private
     def queue_sync
-      return if self.deploy.nil? || !self.deploy.valid? || self.deploy.config_state == 'new' || self.digest.present? 
+      return if self.deploy.nil? || !self.deploy.valid? || self.deploy.config_state == 'new' || self.digest.present?
 
       Delayed::Job.enqueue(DelayedDeploymentSync.new(self.deploy.id))
     end
 
     def queue_remove
-      return if self.digest.nil? 
+      return if self.digest.nil?
 
       Delayed::Job.enqueue(DelayedDeploymentRemove.new(self.fqdn, self.digest))
     end

@@ -1,28 +1,22 @@
 <%= render 'shared/account_nav', :current => 'stores' %>
+<% @title = "Deployment Service for #{@store.name}" %>
 
-<div class='clear'></div>
-<div class='middle'>
-  <div class='middle-inner'>
-    <div class='inner'>
-      <div class='main'>
-        <div class='main-inner'>
-          <h3>Deployment Service for <%= link_to @store.name, @store %></h3>
-          <%= render 'shared/error_messages', :target => @deploy %>
-          <%= form_for @deploy do |f| %>
-            <%= hidden_field_tag :store_id, @store.id %>
-            <fieldset>
-              <ol>
-                <%= render :partial => "form", :object => f %>
-                <li class="button-item">
-                  <input class="button green" name="commit" type="submit" value="Add">
-                </li>
-              </ol>
-            </fieldset>
-          <% end %>
+<div class="content-text">
+  <h1>Deployment Service for <%= link_to @store.name, @store %></h1>
 
-        </div>
+  <%= render 'shared/error_messages', :target => @deploy %>
+  <%= form_for @deploy do |f| %>
+    <%= hidden_field_tag :store_id, @store.id %>
+
+      <%= render :partial => "form", :object => f %>
+      <div class="form-actions">
+        <button class="button big green" type="submit">
+          <i class="icon-plus"></i>
+          Add
+        </button>
       </div>
-    </div>
-  </div>
+
+  <% end %>
 </div>
 
+<%= render 'sidebar' %>

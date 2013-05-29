@@ -5,172 +5,193 @@
 
   <h1>Deployment Service for <%= link_to @store.name, @store %></h1>
 
-  <%= render 'shared/error_messages', :target => @deploy %>
+  <div id="deployment-env">
+    <%= render 'shared/error_messages', :target => @deploy %>
 
-  <% if @server and @server.errors.present? %>
-    <div data-hook="" class="errorExplanation" id="errorExplanation">
-      <p>There was a problem saving that server, please review below.</p>
-    </div>
-  <% end %>
-
-  <%= form_for @deploy, :html => {:multipart => true} do |f| %>
-    <%= render :partial => 'add_on/deploys/form', :object => f %>
-    <div class="form-actions">
-      <button class="button big green" type="submit">
-        <i class="icon-cw"></i>
-        Update
-      </button>
-
-    </div>
-  <% end %>
-
-  <h1>Servers</h1>
-
-  <% if @server.try(:id) %>
-    <%= render 'shared/error_messages', :target => @server %>
-    <% @server = nil # so new server form won't reuse it %>
-  <% end %>
-
-
-  <ul class="server-list">
-    <% @deploy.servers.each do |server| %>
-      <% next if server.new_record? %>
-
-      <li class="server">
-        <%= form_for [@deploy, server] do |form| %>
-          <div class="field">
-            <label for="">FQDN:</label>
-            <%= link_to server.fqdn, "http://#{server.fqdn}", target: '_blank' %>
-          </div>
-
-          <div class="field">
-            <label>IP Address:</label>
-            <%= form.text_field :ip_address %>
-          </div>
-
-          <div class="field">
-            <% if server.has_class?('appserver') %>
-              <label>Unicorn Workers:</label>
-              <%= form.number_field :number_unicorn_workers, min: 2, max: 20 %>
-            <% else %>
-              <%= form.hidden_field :number_unicorn_workers, :value => 0  %>
-            <% end %>
-          </div>
-
-          <div class="form-actions">
-            <button class="button green" type="submit">
-              <i class="icon-cw"></i>
-              Update
-            </button>
-            <span class="or">or</span>
-            <%= link_to content_tag(:i, '', class: 'icon-trash') + ' Delete', add_on_deploy_server_path(@deploy, server), :confirm => "Are you sure you want to delete this server?", :method => :delete, class: 'button' %>
-          </div>
-
-          <label>Roles:</label>
-          <%= server.display_classes %>
-
-        <% end %>
-
-        <% if server.digest.present? %>
-          <% if server.last_puppet_run.present? %>
-            <div class="server-status">
-              <strong>Status:</strong>Reported as '<%= server.last_puppet_result %>' <%= distance_of_time_in_words_to_now server.last_puppet_run %> ago.
-            </div>
-
-            <h2>Update Configuration</h2>
-
-            <div class='code server-update-code'>
-              <pre class="brush: shell">
-                FACTER_db_pass=YOUR_DB_PASSWORD puppet agent --test --certname <%= server.fqdn %>
-              </pre>
-              </code>
-            </div>
-
-            <em>Copy & execute the command above on the server when logged in as root.</em>
-          <% else %>
-            <div class="server-status">
-              <strong>Status:</strong>Ready to deploy
-            </div>
-          <% end %>
-
-          <h5>Initialize Configuration</h5>
-
-          <div class='code server-init-code'>
-            <pre class="brush: shell">
-              bash < <(curl -s http://puppet.spreecommerce.com:5000/install?fqdn=<%= server.fqdn %>\&digest=<%= server.digest %> )
-            </pre>
-          </div>
-
-          <em>Copy & execute the command above on the server when logged in as root.</em>
-
-        <% else %>
-          <% if @deploy.config_state == 'new' %>
-            Mark the <b>Configuration Status</b> above as 'Complete' to begin server configuration.
-          <% else %>
-            Waiting for update from configuration server, 'Refresh' the page for updates.
-          <% end %>
-        <% end %>
-      </li>
-
-
+    <% if @server and @server.errors.present? %>
+      <div data-hook="" class="errorExplanation" id="errorExplanation">
+        <p>There was a problem saving that server, please review below.</p>
+      </div>
     <% end %>
-  </ul>
 
+    <%= form_for @deploy, :html => {:multipart => true} do |f| %>
+      <%= render :partial => 'add_on/deploys/form', :object => f %>
+      <div class="form-actions">
+        <button class="button big green" type="submit">
+          <i class="icon-cw"></i>
+          Update
+        </button>
+
+      </div>
+    <% end %>
+  </div>
+
+  <div id="deployment-servers">
+    <h2>Servers</h2>
+
+    <% if @server.try(:id) %>
+      <%= render 'shared/error_messages', :target => @server %>
+      <% @server = nil # so new server form won't reuse it %>
+    <% end %>
+
+
+    <ul class="server-list">
+      <% @deploy.servers.each do |server| %>
+        <% next if server.new_record? %>
+
+        <li class="server">
+          <h3>Server: <%= link_to server.fqdn, "http://#{server.fqdn}", target: '_blank' %></h3>
+
+          <%= form_for [@deploy, server] do |form| %>
+            <div class="fields-block">
+              <div class="field fullwidth">
+                <label>IP Address:</label>
+                <%= form.text_field :ip_address, size: 20 %>
+              </div>
+
+              <div class="field fullwidth">
+                <% if server.has_class?('appserver') %>
+                  <label>Unicorn Workers:</label>
+                  <%= form.number_field :number_unicorn_workers, min: 2, max: 20 %>
+                <% else %>
+                  <%= form.hidden_field :number_unicorn_workers, value: 0 %>
+                <% end %>
+              </div>
+
+              <div class="field">
+                <label>Roles:</label>
+                <%== server.display_classes %>
+              </div>
+            </div>
+
+            <% if server.digest.present? %>
+              <% if server.last_puppet_run.present? %>
+                <div class="field">
+                  <label>Status:</label>
+                  <div class="text">
+                    Reported as <span class="state"><%= server.last_puppet_result %></span> <%= distance_of_time_in_words_to_now server.last_puppet_run %> ago.
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+
+            <% if server.digest.present? %>
+              <% if server.last_puppet_run.present? %>
+                <div class="note">
+                  <h3>Update Configuration</h3>
+
+                  <div class='code server-update-code'>
+                    <pre class="brush: shell; gutter: false; toolbar: false;">
+                      FACTER_db_pass=YOUR_DB_PASSWORD puppet agent --test --certname <%= server.fqdn %>
+                    </pre>
+                    </code>
+                  </div>
+
+                  <em>Copy & execute the command above on the server when logged in as root.</em>
+                </div>
+              <% else %>
+                <div class="info">
+                  <strong>Status:</strong>Ready to deploy
+                </div>
+              <% end %>
+
+              <div class="note">
+                <h3>Initialize Configuration</h3>
+
+                <div class='code server-init-code'>
+                  <pre class="brush: shell; gutter: false; toolbar: false;">
+                    bash < <(curl -s http://puppet.spreecommerce.com:5000/install?fqdn=<%= server.fqdn %>\&digest=<%= server.digest %> )
+                  </pre>
+                </div>
+
+                <em>Copy & execute the command above on the server when logged in as root.</em>
+              </div>
+
+            <% else %>
+              <div class="note">
+                <% if @deploy.config_state == 'new' %>
+                  Mark the <b>Configuration Status</b> above as 'Complete' to begin server configuration.
+                <% else %>
+                  Waiting for update from configuration server, 'Refresh' the page for updates.
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="form-actions">
+              <button class="button green" type="submit">
+                <i class="icon-cw"></i>
+                Update
+              </button>
+              <span class="or">or</span>
+              <%= link_to content_tag(:i, '', class: 'icon-trash') + ' Delete', add_on_deploy_server_path(@deploy, server), :confirm => "Are you sure you want to delete this server?", :method => :delete, class: 'button' %>
+            </div>
+
+
+
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
 
   <div id="add-server">
-    <h1>Add Server</h1>
+    <h2>Add Server</h2>
 
     <%= render 'shared/error_messages', :target => @server %>
     <%= form_for [@deploy, Server.new] do %>
-      <div class="field">
-        <label for="">Fully Qualified Domain Name (FQDN)</label>
-        <%= text_field_tag "server[fqdn]", @server.try(:fqdn), :style => "width:83%;" %></td>
+      <div class="fields-block">
+        <div class="field">
+          <label for="">Fully Qualified Domain Name (FQDN)</label>
+          <%= text_field_tag "server[fqdn]", @server.try(:fqdn), :style => "width:83%;" %></td>
+        </div>
+
+        <div class="field">
+          <label for="">IP Address</label>
+          <%= text_field_tag "server[ip_address]", @server.try(:ip_address) %>
+        </div>
+
+        <div class="field">
+          <label for="">Unicorn Workers</label>
+          <%= number_field_tag "server[number_unicorn_workers]", '3', min: 2, max: 20 %>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="">IP Address</label>
-        <%= text_field_tag "server[ip_address]", @server.try(:ip_address) %>
-      </div>
-
-      <div class="field">
-        <label for="">Unicorn Workers</label>
-        <%= select_tag "server[number_unicorn_workers]", options_for_select((2..20).to_a, 3), :style => 'width:50%', :class => "new_server_unicorns"  %>
-      </div>
-
-      <div class="field">
+      <div class="field checkbox">
         <label>Roles</label>
-        <%= check_box_tag "server[classes][]", "appserver", @server.try(:classes).to_s.include?("appserver"), :class => 'server_classes' %>App Server (nginx, unicorn, ruby, git)<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;<%= check_box_tag "server[classes][]", "loadbalancer", @server.try(:classes).to_s.include?("loadbalancer"), :class => 'server_classes' %>Load Balancer (server must have app server role)<br>
-        <%= check_box_tag "server[classes][]", "dbserver", @server.try(:classes).to_s.include?("dbserver"), :class => 'server_classes' %>DB Server (mysql, ruby, git)<br>
-        <%= check_box_tag "server[classes][]", "utilserver", @server.try(:classes).to_s.include?("utilserver"), :class => 'server_classes' %>Utility Server (mysql, ruby, git)
+        <ul class="checkbox-values">
+          <li class="value">
+            <%= check_box_tag "server[classes][]", "appserver", @server.try(:classes).to_s.include?("appserver"), class: 'server_classes', id: 'app-server' %>
+            <label for="app-server">App Server (nginx, unicorn, ruby, git)</label>
+
+            <ul class="subclasses">
+              <li class="subclass">
+                <%= check_box_tag "server[classes][]", "loadbalancer", @server.try(:classes).to_s.include?("loadbalancer"), class: 'server_classes', id: 'load-balancer' %>
+                <label for="load-balancer">Load Balancer (server must have app server role)</label>
+              </li>
+            </ul>
+          </li>
+          <li class="value">
+            <%= check_box_tag "server[classes][]", "dbserver", @server.try(:classes).to_s.include?("dbserver"), class: 'server_classes', id: 'db-server' %>
+            <label for="db-server">DB Server (mysql, ruby, git)</label>
+          </li>
+          <li class="value">
+            <%= check_box_tag "server[classes][]", "utilserver", @server.try(:classes).to_s.include?("utilserver"), class: 'server_classes', id: 'util-server' %>
+            <label for="util-server">Utility Server (mysql, ruby, git)</label>
+          </li>
+        </ul>
       </div>
 
       <div class="form-actions">
-        <%= submit_tag 'Add', :class => "button green", :style => 'float:right;' %>
+        <div class="form-actions">
+          <button class="button green" type="submit">
+            <i class="icon-plus"></i>
+            Add
+          </button>
+        </div>
       </div>
 
     <% end %>
   </div>
 </div>
 
-<div id="sidebar" class='help-sidebar'>
-    <h1>Help</h1>
-
-    <p>
-      Learn more about:<br>
-      - <%= link_to "Spree Deployment Service", "http://guides.spreecommerce.com/deployment_service.html" %><br>
-      - <%= link_to "Deploying your application", "http://guides.spreecommerce.com/deploying_your_application.html" %><br>
-      - <%= link_to "Config. & Customization", "http://guides.spreecommerce.com/server_configuration_and_customization.html" %><br>
-      - <%= link_to "Appliation Processes", "http://guides.spreecommerce.com/deployment_application_processes.html" %><br>
-      - <%= link_to "SSL Certificates", "http://guides.spreecommerce.com/requesting_and_configuring_ssl.html" %><br>
-    </p>
-
-    <p>Each deployment requires at least one <strong>Application</strong> and only one <strong>Database</strong> Server.</p>
-
-    <p>For small / test environments a single server can have both <strong>Application</strong> and  <strong>Database</strong> roles.</p>
-
-    <p><strong>FQDNs</strong> should use the following notation:<br>app1.example.com<br>db1.example.com<br>www.example.com </p>
-
-    <p><strong>IP Addresses</strong> can use private / internal addresses but each server must be contactable by each other on the specified address.</p>
-
-</div>
+<%= render 'sidebar' %>
